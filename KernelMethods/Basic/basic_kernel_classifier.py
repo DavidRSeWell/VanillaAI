@@ -44,6 +44,7 @@ def run_binary_iris_classifier(iris_data_x,iris_data_y,train_data_indexes,test_d
             k_mm[i][j] = np.dot(x_m[i], x_m[j])
 
     b = (k_mm.sum() / len(k_mm) ** 2 - k_pp.sum() / len(k_pp) ** 2)
+
     b = b / 2.0
 
     data_x = np.concatenate((x_p, x_m))  # combine positive and negative vectors together

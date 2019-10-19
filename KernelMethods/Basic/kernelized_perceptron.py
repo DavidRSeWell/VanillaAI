@@ -27,58 +27,58 @@ def kernel_k2(x,y,p=2):
     k2 = (1 + k1)**p
     return k2
 
+def kernel_k3(x,y,a=1,b=1):
+
+    return np.tanh(a*kernel_k1(x,y) + b)
+
 def phi_I(x):
     return x
 
-def phi_p(x):
 
+
+def phi_p(x):
     phi_x = [x[0]**2,x[1]**2,x[0]**2 + x[1]**2]
+
     return np.array(phi_x)
 
 def run_kernalized_perceptron(X ,Y,kernel=kernel_k1,phi=phi_I):
+    '''
 
-    ####################
-    # Construct kernel
-    ####################
-    # init to zero
+    :param X:
+    :param Y:
+    :param kernel: kernel function to use
+    :param phi: function: if using phi transformation
+    :return:
+    '''
+
+    # init alpha to zero
     alphas = np.array([0 for _ in range(X.shape[0])])
-    b = 0
 
-    for iter in range(5):
+    for iter in range(1): # for running more than one iteration. This didnt seem to matter
 
         print('Running iteration {}'.format(iter))
 
         for i in range(X.shape[0]):
 
-            x = X[i]
-
+            x_input = X[i]
+            # if trying to use phi w / inner product
             #x = phi(x)
 
+            # using loop for creating kernel
             k_mm = 0
             for j in range(X.shape[0]):
 
-                # k_mm += alphas[j]*np.dot(X[j],x)
-                k_mm += alphas[j] * kernel(X[j] ,x)
+                k_mm += alphas[j] * kernel(X[j] ,x_input)
 
             y_hat = k_mm
 
-            if (y_hat *Y[i] < 0) or i == 0: # wrong
+            if (y_hat *Y[i] < 0) or i == 0: # if wrong or if its the first iteration
 
-                # update every alpha by k(x,y)
-                #k_update = 0
-                #for k in range(X.shape[0]):
-
-                    # update = np.dot(Y[i]*np.ones(x.shape),x)
-                    #k_update += np.dot(X[k] ,X_new[i] ) *Y[i]
-
-                #alphas = alphas + (X_new[i]*Y[i]).sum()
-                alphas[i] = alphas[i] + Y[i]
-                #alphas = alphas + Y
-                b += k_mm
+                alphas[i] = alphas[i] + Y[i] # update only the alpha of the index that we are trying to predict
 
     return alphas
 
-def kernel_perceptron_sanity_check(X_new, X, Y, alphas,kernel,phi):
+def kernel_perceptron_check(X_new, X, Y, alphas,kernel,phi):
     num_wrong = 0
     num_right = 0
 
@@ -117,13 +117,15 @@ if __name__ == '__main__':
 
     run_create_circle_data = 1
     if run_create_circle_data:
+
         circle_y, circle_x = get_circle(2)
+
         colors = ('blue', 'red')
         groups = ('+', '-')
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
         ax.scatter(circle_x, circle_y, color='red', label='-')
-        x_p = multivariate_normal([0, 0], [[0.1, 0], [0, 0.1]], size=200)
+        x_p = multivariate_normal([2, 0], [[0.5, 0], [0, 0.5]], size=200)
         x_p_1, x_p_2 = zip(*x_p)
         ax.scatter(x_p_1, x_p_2, color='blue', label='+')
         # ax.scatter(x_m_1,x_m_2,color='red',label='-')
@@ -177,6 +179,6 @@ if __name__ == '__main__':
     test_data_x = X_data[test_data_indexes]
     test_data_y = Y_data[test_data_indexes]
 
-    alphas_trained = run_kernalized_perceptron(train_data_x, train_data_y,kernel_k1,phi=phi_I)
+    alphas_trained = run_kernalized_perceptron(train_data_x, train_data_y,kernel_k2,phi=phi_I)
 
-    kernel_perceptron_sanity_check(test_data_x,train_data_x,test_data_y,alphas_trained,kernel_k1,phi=phi_I)
+    kernel_perceptron_check(test_data_x,train_data_x,test_data_y,alphas_trained,kernel_k2,phi=phi_I)
