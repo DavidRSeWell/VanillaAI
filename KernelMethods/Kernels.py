@@ -1,6 +1,7 @@
 import numpy as np
 
 def kernel_k1(x,y):
+
     return np.dot(x,y)
 
 def kernel_k2(x,y,p=2):
@@ -31,11 +32,11 @@ class KernelsDict(object):
     def kernel_k1(self,x, y):
         return np.inner(x, y)
 
-    def kernel_k2(self,x, y, p=5):
+    def kernel_k2(self,x, y, p=2):
         k1 = self.kernel_k1(x, y)
 
         k2 = (1 + k1) ** p
         return k2
 
-    def kernel_k3(self,x, y, a=1, b=1):
+    def kernel_k3(self,x, y, a=1, b=5):
         return np.tanh(a * self.kernel_k1(x, y) + b)

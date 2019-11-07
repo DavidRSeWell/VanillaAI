@@ -79,7 +79,7 @@ def run_binary_iris_classifier(iris_data_x,iris_data_y,train_data_indexes,test_d
 if __name__ == '__main__':
 
 
-    binary_iris_classifier = 1
+    binary_iris_classifier = 0
     if binary_iris_classifier:
 
         iris_data = datasets.load_iris()
