@@ -117,6 +117,28 @@ def kernel_check(X_new, X, Y, alphas,kernel,label1,label2):
 
     return num_wrong , num_right
 
+def semiparametric_regression(X,Y,kernel,lamda):
+
+    K = kernel(X,X)
+
+    x2 = K + lamda*np.diag(np.ones(K.shape[0]))
+
+    mat = np.block([[X,x2],[X,K]])
+
+    mat_inv = np.linalg.pinv(mat)
+
+    Y2 = np.block([[Y],[Y]])
+
+    solution = np.matmul(mat_inv,Y2)
+
+    theta_dim = X.shape[1] # X is n x d and theta is d x 1
+
+    theta = solution[:theta_dim] # grab thetas
+
+    alpha = solution[theta_dim:] # alpha solutions are whats left
+
+    return theta,alpha
+
 
 if __name__ == '__main__':
 
@@ -173,7 +195,7 @@ if __name__ == '__main__':
 
         print('Done running binary classifier')
 
-    run_mnist_classifier = 1
+    run_mnist_classifier = 0
     if run_mnist_classifier:
         #mnist = fetch_mldata('MNIST original', data_home='/Users/befeltingu/VanillaAI/DataSets/Image/')
         mnist = datasets.load_digits()
@@ -278,6 +300,39 @@ if __name__ == '__main__':
         plt.plot(lambdas,tot_accuracy)
 
         plt.show()
+
+    run_semiparametric_regression = 1
+    if run_semiparametric_regression:
+
+        data = pd.read_csv('/Users/befeltingu/VanillaAI/KernelMethods/Basic/hmw3-data1.csv')
+
+        X = data[['x']].as_matrix()
+        Y = data[['y']].as_matrix()
+
+        kernels = KernelsDict()
+
+        theta, alpha = semiparametric_regression(X,Y,kernels.kernel_k2,lamda=0.5)
+
+        # now make predictions on data
+
+        predictions = []
+        for i in range(X.shape[0]):
+
+            k_mm = 0
+            for j in range(X.shape[0]):
+                k_mm += alpha[j] * kernels.kernel_k2(X[j], X[i])
+
+            y_hat = X[i]*theta + k_mm
+
+            predictions.append(y_hat[0][0])
+
+
+        plt.plot([_ for _ in range(len(predictions))],predictions)
+        plt.scatter([_ for _ in range(len(predictions))],np.reshape(Y,(len(Y))),c='red')
+
+        plt.show()
+
+
 
 
 

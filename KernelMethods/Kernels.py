@@ -32,7 +32,7 @@ class KernelsDict(object):
     def kernel_k1(self,x, y):
         return np.inner(x, y)
 
-    def kernel_k2(self,x, y, p=2):
+    def kernel_k2(self,x, y, p=12):
         k1 = self.kernel_k1(x, y)
 
         k2 = (1 + k1) ** p
