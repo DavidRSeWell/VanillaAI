@@ -40,7 +40,7 @@ def select_action(q_values,count_values,epsilon,num_levers,t,algorithm_type,c=1)
 
     return action
 
-def run_e_greedy_bandit(lever_data,epochs,epsilon,init_q_value,algo_type):
+def run_e_greedy_bandit(lever_data,lever_meta,epochs=100,epsilon=0.1,init_q_value=0,algo_type='greedy'):
     '''
     This is a function for running the epsilon greedy bandit with different
     parameters.
@@ -53,13 +53,11 @@ def run_e_greedy_bandit(lever_data,epochs,epsilon,init_q_value,algo_type):
     :return:
     '''
 
-    lever_data = lever_data['data']
+    num_levers = len(lever_data['data'])
 
-    arr = np.array([0.0])  # init avg_reward
+    count_values = np.zeros(num_levers)
 
-    count_values = np.zeros(len(lever_data))
-
-    q_values = np.ones(len(lever_data)) * init_q_value
+    q_values = np.ones(num_levers) * init_q_value
 
     avg_reward_data = [0]
 
@@ -72,11 +70,11 @@ def run_e_greedy_bandit(lever_data,epochs,epsilon,init_q_value,algo_type):
 
         print("Reward Vector: " + str(q_values))
 
-        action = select_action(q_values, count_values, epsilon, len(lever_data), i, algo_type, 1)
+        action = select_action(q_values, count_values, epsilon, num_levers, i, algo_type, 1)
 
-        mean_current_lever = lever_data[action]['mean']
+        mean_current_lever = lever_meta[action]['mean']
 
-        std_current_lever = lever_data[action]['std']
+        std_current_lever = lever_meta[action]['std']
 
         reward = norm.rvs(loc=mean_current_lever, scale=std_current_lever)
 
