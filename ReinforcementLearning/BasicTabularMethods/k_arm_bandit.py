@@ -7,6 +7,14 @@ import numpy as np
 
 from scipy.stats import norm
 
+def get_error(q_values,actual_values):
+
+    error = 0
+    for i in range(len(q_values)):
+        error += np.abs(q_values[i] - actual_values[i])
+
+    return error
+
 def select_action(q_values,count_values,epsilon,num_levers,t,algorithm_type,c=1):
 
     action = None  # will be the index of the lever selected
@@ -63,6 +71,12 @@ def run_e_greedy_bandit(lever_data,lever_meta,epochs=100,epsilon=0.1,init_q_valu
 
     avg_reward = 0
 
+    errors = []
+
+    init_error = get_error(q_values,lever_meta)
+
+    errors.append(init_error)
+
     for i in range(1, epochs + 1):
         print("Epoch: " + str(i))
 
@@ -88,6 +102,8 @@ def run_e_greedy_bandit(lever_data,lever_meta,epochs=100,epsilon=0.1,init_q_valu
 
         avg_reward_data.append(avg_reward)
 
-    return avg_reward_data, avg_reward, list(q_values), list(count_values)
+        errors.append(get_error(q_values,lever_meta))
+
+    return avg_reward_data, avg_reward, errors, list(q_values), list(count_values)
 
 
