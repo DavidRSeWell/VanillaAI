@@ -10,6 +10,5 @@ class RKHS(object):
     def __init__(self):
         pass
 
-
     def split_data(self):
         pass
