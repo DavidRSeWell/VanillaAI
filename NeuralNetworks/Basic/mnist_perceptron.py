@@ -131,7 +131,7 @@ class Perceptron:
         n = int - Num targets
         :return:
         '''
-        W = (np.random.random((self.train_x.shape[1],n)) - 0.5) / 100.0
+        W = (np.random.random((self.train_x.shape[1],n)) - 0.5) / 10.0
 
         self.weights = W
 
@@ -169,22 +169,26 @@ class Perceptron:
 
         self.init_weights(targets)
 
-        train_error = self.E_in()
-        test_error = self.E_out()
+        train_error,train_correct = self.E_in()
+        test_error,test_correct = self.E_out()
 
         train_errors = [train_error]
         test_errors = [test_error]
 
-        train_corrects = []
-        test_corrects = []
+        train_corrects = [train_correct]
+        test_corrects = [test_correct]
 
         for iter in range(iters):
 
-            y_hat = self.forward(self.train_x)
+            for i , x in enumerate(self.train_x):
 
-            error = y_hat - train_targets
+                x = np.reshape(x,(1,x.shape[0]))
 
-            self.weights -= alpha*np.dot(self.train_x.T,error)
+                y_hat = self.forward(x)
+
+                error = y_hat - train_targets[i].T
+
+                self.weights -= alpha*np.dot(x.T,error)
 
             if (iter % 1 == 0):
 
@@ -214,7 +218,7 @@ if __name__ == '__main__':
     from sklearn.datasets import fetch_mldata
     mnist = fetch_mldata("MNIST original")
 
-    ALPHA = 0.001
+    ALPHA = 0.1
 
     mnist_data = mnist['data'].copy()
     mnist_data = mnist_data.reshape((len(mnist_data), -1))
@@ -236,7 +240,7 @@ if __name__ == '__main__':
 
     percept = Perceptron(train_x,train_y,test_x,test_y)
 
-    train_errors, test_errors, train_correct, test_correct = percept.run(iters=500,alpha=ALPHA)
+    train_errors, test_errors, train_correct, test_correct = percept.run(iters=200,alpha=ALPHA)
 
     plt.plot([i for i in range(len(train_correct))],train_correct,label='training')
 
