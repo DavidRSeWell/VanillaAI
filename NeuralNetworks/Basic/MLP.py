@@ -90,6 +90,27 @@ class MLP:
 
         return loss , correct
 
+    def E_out(self):
+        '''
+        Compute total in sample error
+        :return:
+        '''
+
+        Y, _ = self.forward(self.test_x)
+
+        Y_guess = np.argmax(Y, 1)
+
+        diff = self.test_y - Y_guess
+
+        diff = np.where(diff == 0.0, 0, 1)
+
+        num_wrong = diff.sum()
+
+        loss = (float(num_wrong) / self.test_y.shape[0]) * 100.0
+
+        correct = ((self.test_y.shape[0] - num_wrong) / float(self.test_y.shape[0])) * 100.0
+
+        return loss, correct
 
     def forward(self,x):
         '''
@@ -141,10 +162,12 @@ class MLP:
 
         self.init_weights()
 
-        loss, correct = self.E_in()
+        train_loss, train_correct = self.E_in()
 
-        corrects = [correct]
-        losses = [loss]
+        test_loss, test_correct = self.E_out()
+
+        train_corrects = [train_correct]
+        test_corrects = [test_correct]
 
         for k in range(epochs):
             for i , x in enumerate(self.train_x):
@@ -158,13 +181,15 @@ class MLP:
                 self.backward(y_hat,target,a,x)
 
 
-            loss, correct = self.E_in()
-            losses.append(loss)
-            corrects.append(correct)
+            train_loss, train_correct = self.E_in()
+            test_loss, test_correct = self.E_out()
 
-            print('%{} correct for iter {} '.format(str(correct),str(k)))
+            train_corrects.append(train_correct)
+            test_corrects.append(test_correct)
 
-        return corrects , losses
+            print('%{} correct for iter {} '.format(str(test_correct),str(k)))
+
+        return train_corrects , test_corrects
 
 
 
@@ -193,8 +218,10 @@ if __name__ == '__main__':
 
     mlp_perceptron = MLP(mnist_data,mnist_targets,HIDDEN_LAYER_SIZE,ALPHA,num_targets)
 
-    corrects , losses = mlp_perceptron.run(20,0.80)
+    train_corrects , test_corrects = mlp_perceptron.run(20,0.80)
 
-    plt.plot(corrects)
-
+    plt.plot(train_corrects,label='Training')
+    plt.plot(test_corrects,label='Test')
+    plt.title('Alpha = {}'.format(ALPHA))
+    plt.legend()
     plt.show()
