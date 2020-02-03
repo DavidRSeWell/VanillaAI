@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
+import seaborn as sns
+
 from shutil import copyfileobj
 from six.moves import urllib
 from sklearn.datasets.base import get_data_home
@@ -23,7 +26,7 @@ def sigmoid(X):
 
 class MLP:
 
-    def __init__(self,X,Y,H,alpha,label_count):
+    def __init__(self,X,Y,H,alpha,eta,label_count):
         '''
 
         :param X: Our full data set
@@ -31,7 +34,8 @@ class MLP:
         :param H: Size of hidden later
         :param alpha: learning rate
         '''
-        self.alpha = alpha
+        self.alpha = alpha # momentum learning rate
+        self.eta = eta # first order learning rate
         self.label_count = label_count
         self.H = H
         self.X = X
@@ -39,6 +43,9 @@ class MLP:
 
         self.w1 = None # input to hidden weights
         self.w2 = None # hidden to outpu weights
+
+        self.delta_w1 = None # Use for updating momentum
+        self.delta_w2 = None
 
     def backward(self,yhat,target,a,x):
         '''
@@ -63,9 +70,35 @@ class MLP:
 
         h_error = a * (1.0 - a) * np.dot(o_error,self.w2.T)
 
-        self.w1 -= self.alpha*np.dot(x.T,h_error)
+        delta_w1 = self.eta*np.dot(x.T,h_error[:,:-1]) + self.alpha*self.delta_w1
 
-        self.w2 -= self.alpha*np.dot(a.T,o_error)
+        delta_w2 = self.eta*np.dot(a.T,o_error) + self.alpha*self.delta_w2
+
+        self.w1 -= delta_w1
+
+        self.w2 -= delta_w2
+
+        self.delta_w1 = delta_w1.copy()
+
+        self.delta_w2 = delta_w2.copy()
+
+    def confusion_matrix(self):
+        '''
+        Build confusion matrix from test set
+        :return:
+        '''
+
+        Y, h = self.forward(self.test_x)
+
+        Y_guess = np.argmax(Y,1)
+
+        con_mat = np.zeros((self.label_count,self.label_count))
+
+        for i in range(self.label_count):
+            for j in range(self.label_count):
+                con_mat[i,j] = np.sum(np.where(self.test_y == i,1,0)*np.where(Y_guess == j,1,0))
+
+        return con_mat
 
 
     def E_in(self):
@@ -121,6 +154,8 @@ class MLP:
 
         h = sigmoid(np.dot(x,self.w1))
 
+        h = np.concatenate((h.copy(), 1.0*np.ones((len(h),1))),axis=1) # adding a bias term to the hidden layer
+
         o = sigmoid(np.dot(h,self.w2))
 
         return o , h
@@ -131,7 +166,11 @@ class MLP:
 
         self.w1 = (np.random.random((n,self.H)) - 0.5) / 10.0
 
-        self.w2 = (np.random.random((self.H,self.label_count)) - 0.5) / 10.0
+        self.w2 = (np.random.random((self.H + 1,self.label_count)) - 0.5) / 10.0 # add + 1 for the bias term
+
+        self.delta_w1 = np.zeros(self.w1.shape)
+
+        self.delta_w2 = np.zeros(self.w2.shape)
 
     def run(self,epochs,split_rule=0.80):
         '''
@@ -148,17 +187,20 @@ class MLP:
 
         test_data_indexes = [i for i in range(m) if i not in train_data_indexes]  # get whats left over for testing
 
+        self.X = np.concatenate((self.X.copy(), 1.0*np.ones((m,1))),axis=1) # adding a bias term to the input
+
         self.train_x = self.X[train_data_indexes]
         self.train_y = self.Y[train_data_indexes]
 
         self.test_x = self.X[test_data_indexes]
         self.test_y = self.Y[test_data_indexes]
 
-        train_targets = np.zeros((len(self.train_y), self.label_count))
+        # Create output vectors with value of 0.9 at the correct index and 0.1 otherwise
+        train_targets = np.zeros((len(self.train_y), self.label_count))*0.1
 
         index_array = [i for i in range(len(self.train_y))]
 
-        train_targets[index_array, self.train_y.astype(np.int)] = 1
+        train_targets[index_array, self.train_y.astype(np.int)] = 0.9
 
         self.init_weights()
 
@@ -172,7 +214,7 @@ class MLP:
         for k in range(epochs):
             for i , x in enumerate(self.train_x):
 
-                x = np.reshape(x,(1,n))
+                x = np.reshape(x,(1,n + 1))
 
                 y_hat, a = self.forward(x)
 
@@ -201,8 +243,9 @@ if __name__ == '__main__':
     from sklearn.datasets import fetch_mldata
     mnist = fetch_mldata("MNIST original")
 
-    ALPHA = 0.1
-    HIDDEN_LAYER_SIZE = 20
+    ALPHA = 0
+    ETA = 0.1
+    HIDDEN_LAYER_SIZE = 100
 
     mnist_data = mnist['data'].copy()
     mnist_data = mnist_data.reshape((len(mnist_data), -1))
@@ -216,12 +259,28 @@ if __name__ == '__main__':
 
     num_targets = len(set(mnist_targets))
 
-    mlp_perceptron = MLP(mnist_data,mnist_targets,HIDDEN_LAYER_SIZE,ALPHA,num_targets)
+    mlp_perceptron = MLP(mnist_data,mnist_targets,HIDDEN_LAYER_SIZE,ETA,ALPHA,num_targets)
 
-    train_corrects , test_corrects = mlp_perceptron.run(20,0.80)
+    train_corrects , test_corrects = mlp_perceptron.run(50,0.80)
 
     plt.plot(train_corrects,label='Training')
     plt.plot(test_corrects,label='Test')
-    plt.title('Alpha = {}'.format(ALPHA))
+    plt.title('alpha = {} momentum = {} hidden size = {}'.format(ETA,ALPHA,HIDDEN_LAYER_SIZE))
     plt.legend()
     plt.show()
+
+
+    confusion_mat = mlp_perceptron.confusion_matrix()
+
+    conf_mat_df = pd.DataFrame(np.round(confusion_mat, 5))
+
+    ax = sns.heatmap(conf_mat_df, annot=True, fmt='g')
+
+    bottom, top = ax.get_ylim()
+
+    ax.set_ylim(bottom + 0.5, top - 0.5)
+
+    plt.ylabel('Actuall Class')
+    plt.xlabel('Predicted Class')
+    plt.show()
+    plt.close()

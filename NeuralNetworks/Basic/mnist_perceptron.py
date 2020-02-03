@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
     percept = Perceptron(train_x,train_y,test_x,test_y)
 
-    train_errors, test_errors, train_correct, test_correct = percept.run(iters=200,alpha=ALPHA)
+    train_errors, test_errors, train_correct, test_correct = percept.run(iters=50,alpha=ALPHA)
 
     plt.plot([i for i in range(len(train_correct))],train_correct,label='training')
 

@@ -18,7 +18,7 @@ def k_gaussian(x, xp, sigma):
 def k_tanh(x, xp, kappa, Theta):
     return np.tanh(kappa * np.dot(x, xp) + Theta)
 
-def compute_kernel(k_func,X):
+def compute_kernel(k_func,X,):
 
     n = X.shape[0]
     K = np.zeros((n,n))
@@ -27,6 +27,32 @@ def compute_kernel(k_func,X):
             K[i,j] = k_func(X[i],X[j])
 
     return K
+
+def center_kernel(K):
+    '''
+    Using the formulation from the book (same as class)
+
+    K_c = K - I_m * K - K*I_m + I_m * K *I_m
+    I_m is identity matrix
+    :param K:
+    :return:
+    '''
+
+    I = np.identity(K.shape[0])
+    n = K.shape[0]
+    IKI = K.sum() / float(n*n)
+
+    # start with slow version for sanity check
+    K_c_1 = np.zeros((K.shape))
+    for i in range(K.shape[0]):
+        for j in range(K.shape[1]):
+            #K_c_1[i][j] = K - np.dot(I,K[:,i]) - np.dot(K[j,:],I) + IKI
+            K_c_1[i][j] = K[i][j] - K[:,i].sum()/ n - K[j,:].sum() / n + IKI
+
+
+    #K_c = K - np.dot(I,K) - np.dot(K,I) + np.dot(np.dot(I,K),I)
+
+    return K_c_1
 
 def gauss_kernel(X,gamma):
 
@@ -42,7 +68,7 @@ def gauss_kernel(X,gamma):
 
     return K
 
-def sample_functions(m, N, kernel):
+def sample_functions(m, N, K):
     '''
 
     :param m:
@@ -51,9 +77,9 @@ def sample_functions(m, N, kernel):
     :return:
     '''
     # Sample Functions
-    X = np.arange(-m, m + 1)
-    K = compute_kernel(kernel, X)
-    return X, np.random.multivariate_normal(np.zeros((2 * m + 1)), K, (N))
+    #X = np.arange(-m, m + 1)
+    #K = compute_kernel(kernel, X)
+    return np.random.multivariate_normal(np.zeros((2 * m + 1)), K, (N))
 
 def main():
 
@@ -78,6 +104,8 @@ if __name__ == '__main__':
 
         K = gauss_kernel(X,gamma=gamma)
 
+        K_c = center_kernel(K)
+
         eigvals, eigvecs = eigh(K)
 
         for i in range(num_eigvectors):
@@ -98,11 +126,24 @@ if __name__ == '__main__':
 
         m = 10
         N = 10
-        tau = 2
+        tau = 10
         kappa = 1
         theta = 0.5
+
         #X,f_samples = sample_functions(m,N,lambda x, y: k_polynomial(x, y, tau))
-        X,f_samples = sample_functions(m,N,lambda x, y: k_tanh(x, y, kappa,theta))
+        #X,f_samples = sample_functions(m,N,lambda x, y: k_polynomial(x, y, tau))
+        #X,f_samples = sample_functions(m,N,lambda x, y: k_tanh(x, y, kappa,theta))
+        X = np.arange(-m,m + 1)
+        K = gauss_kernel(X,tau)
+        K_c = center_kernel(K)
+        f_samples = sample_functions(m,N,K_c)
+        print('f sample mean = {}'.format(f_samples.mean()))
+        mean_tot = 0
+        for i in range(N):
+            mean_tot += f_samples[i][:11].mean()
+
+        mean_tot = mean_tot / N
+        print('calc mean = {}'.format(mean_tot))
         plt.title('Tanh kernel with kappa = {} and theta = {}'.format(kappa,theta))
         #x_plot = np.linspace()
         for i in range(N):
