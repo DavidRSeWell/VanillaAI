@@ -42,17 +42,29 @@ def center_kernel(K):
     n = K.shape[0]
     IKI = K.sum() / float(n*n)
 
+    mm = np.ones((n,n)) * (1.0 / n)
+
     # start with slow version for sanity check
+    '''
     K_c_1 = np.zeros((K.shape))
     for i in range(K.shape[0]):
         for j in range(K.shape[1]):
             #K_c_1[i][j] = K - np.dot(I,K[:,i]) - np.dot(K[j,:],I) + IKI
             K_c_1[i][j] = K[i][j] - K[:,i].sum()/ n - K[j,:].sum() / n + IKI
+    '''
+
+    #K_c_1 = np.dot(np.dot((I - mm),K),(I - mm))
+    K_c_1 = K - np.dot(mm,K) - np.dot(K,mm) + np.dot(np.dot(mm,K),mm)
+
+    K[:11,:11] = K_c_1[:11,:11]
+
 
 
     #K_c = K - np.dot(I,K) - np.dot(K,I) + np.dot(np.dot(I,K),I)
 
-    return K_c_1
+    #diff = (K_c_1 - K_c).sum()
+
+    return K
 
 def gauss_kernel(X,gamma):
 
@@ -79,7 +91,7 @@ def sample_functions(m, N, K):
     # Sample Functions
     #X = np.arange(-m, m + 1)
     #K = compute_kernel(kernel, X)
-    return np.random.multivariate_normal(np.zeros((2 * m + 1)), K, (N))
+    return np.random.multivariate_normal(np.zeros((2*m + 1)), K, (N))
 
 def main():
 
@@ -134,9 +146,13 @@ if __name__ == '__main__':
         #X,f_samples = sample_functions(m,N,lambda x, y: k_polynomial(x, y, tau))
         #X,f_samples = sample_functions(m,N,lambda x, y: k_tanh(x, y, kappa,theta))
         X = np.arange(-m,m + 1)
+
         K = gauss_kernel(X,tau)
+
         K_c = center_kernel(K)
+
         f_samples = sample_functions(m,N,K_c)
+
         print('f sample mean = {}'.format(f_samples.mean()))
         mean_tot = 0
         for i in range(N):
@@ -144,8 +160,9 @@ if __name__ == '__main__':
 
         mean_tot = mean_tot / N
         print('calc mean = {}'.format(mean_tot))
-        plt.title('Tanh kernel with kappa = {} and theta = {}'.format(kappa,theta))
+        plt.title('Gaussian kernel centered at 0 with tau = {}'.format(tau))
         #x_plot = np.linspace()
+        #X = [i for i in range(-10,11,2)]
         for i in range(N):
             plt.plot(X,f_samples[i])
 

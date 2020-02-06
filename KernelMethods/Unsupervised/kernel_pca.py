@@ -64,8 +64,8 @@ def david_kpca(X, gamma, n_components):
     K = np.zeros((N,N))
     for i in range(N):
         for j in range(N):
-            #K[i][j] = (np.dot(X[i],X[j]) + 1)**3
-            K[i][j] = np.exp(np.dot(-1.0*X[i],X[j]) / gamma)
+            K[i][j] = (np.dot(X[i],X[j]))**4
+            #K[i][j] = np.exp(np.dot(-1.0*X[i],X[j]) / gamma)
     # Centering the symmetric NxN kernel matrix.
     N = K.shape[0]
 
