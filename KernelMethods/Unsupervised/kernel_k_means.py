@@ -85,7 +85,7 @@ def kernel_k_means(X,kernel,k,iters=100):
 
     S = np.column_stack((eigvectors[:,-i] for i in range(1,k+1)))
 
-    kmeans = KMeans(n_clusters=k,n_init=100).fit(S)
+    kmeans = KMeans(n_clusters=k,random_state=25).fit(S)
 
     cluster_1 = np.where(kmeans.labels_ == 0)
     cluster_2 = np.where(kmeans.labels_ == 1)
@@ -109,13 +109,13 @@ if __name__ == '__main__':
 
     data = pd.read_csv(data_path).as_matrix()[:,1:]
 
-    plt.scatter(data[:,1],data[:,2])
+    plt.scatter(data[:,0],data[:,1])
 
     plt.show()
 
-    #labels, centers = kernel_k_means(data,polynomial_kernel,2)
+    labels, centers = kernel_k_means(data,gauss_kernel,2)
 
-    labels = kernel_em_cluster(data,gauss_kernel,2)
+    #labels = kernel_em_cluster(data,polynomial_kernel,2)
 
     cluster_1 = np.where(labels == 0)
     cluster_2 = np.where(labels == 1)
@@ -123,11 +123,7 @@ if __name__ == '__main__':
     plt.scatter(data[cluster_1, 0], data[cluster_1, 1], color='blue')
     plt.scatter(data[cluster_2, 0], data[cluster_2, 1], color='red')
 
-    #plt.scatter(centers[0, 0], centers[0, 1], marker='x', color='blue')
-    #plt.scatter(centers[1, 0], centers[1, 1], marker='x', color='red')
-
     plt.show()
-
 
     print('Done running kernel k-means')
 
