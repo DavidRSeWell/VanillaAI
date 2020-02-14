@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 
 
 class KMeans:
@@ -13,13 +13,11 @@ class KMeans:
         self.C = None # list of the means of each cluster
         self.S = None # list of assignment for each data point
 
-
     def cluster_assignment(self):
         '''
         Update the mean of each of the centroids
         :return:
         '''
-
         for j,c_j in enumerate(self.C):
             data_j = self.X[np.where(self.S == j)]
             mean = np.mean(data_j,axis=0)
@@ -33,7 +31,7 @@ class KMeans:
         :return:
         '''
 
-        c_indexes = np.random.randint(0,self.X.shape[0],2)
+        c_indexes = np.random.randint(0,self.X.shape[0],self.K)
 
         self.C = self.X[c_indexes].copy()
 
@@ -41,7 +39,16 @@ class KMeans:
 
         self.point_assignment() # now that we have centroids lets assign points
 
-    def run(self,iters):
+    def l2_loss(self):
+
+        l2_loss = 0
+        for j , c_j in enumerate(self.C): # loop over each cluster
+            for i , x in enumerate(self.X[np.where(self.S == j)]): # only loop over data points that exist in the current cluster
+                l2_loss  += np.linalg.norm(x - c_j, 2) # l2 norm for each data point
+
+        return l2_loss
+
+    def run(self,r,iters):
         '''
         Overview of algorithm
         2 steps
@@ -50,12 +57,25 @@ class KMeans:
         :return:
         '''
 
-        for iter in range(iters):
-            self.point_assignment()
-            self.cluster_assignment()
-            self.plot()
+        best_loss = (0,999) # tuple with (index of run, final loss)
+        for r_i in range(r):
 
-    def plot(self):
+            self.init() # restart clusters each time
+            print('Running run # = {}'.format(r_i))
+
+            l2_loss = np.round(self.l2_loss(),2)
+            self.plot(run=r_i,iter=0,l2_loss=l2_loss)
+
+            for iter in range(1,iters + 1):
+                self.point_assignment()
+                self.cluster_assignment()
+                l2_loss = np.round(self.l2_loss(),2)
+                self.plot(run=r_i,iter=iter,l2_loss=l2_loss)
+
+            if l2_loss < best_loss[1]:
+                best_loss = (r_i,l2_loss)
+
+    def plot(self,run=None,iter=None,l2_loss=None):
         '''
         A function for displaying the current state
         of the clusters. Display each cluster and its centroid
@@ -67,8 +87,9 @@ class KMeans:
             centroid_i = self.C[i]
             color_i = self.colors[i]
             plt.scatter(data_cluster_i[:,0],data_cluster_i[:,1],color=color_i)
-            plt.scatter(centroid_i[0],centroid_i[1],marker='X')
+            plt.scatter(centroid_i[0],centroid_i[1],marker='X',s=200,color='black')
 
+        plt.title('Clusters = {} run # = {} iteration ={} loss = {}'.format(self.K,run,iter,l2_loss))
         plt.show()
 
     def point_assignment(self):
@@ -90,8 +111,16 @@ class KMeans:
 if __name__ == '__main__':
 
     K = 2 # num clusters
-    Iters = 10 # num iters
-    MaxIters = 100 # max iters
+    R = 3 # number of runs
+    MaxIters = 3 # num max iterations
+
+    gmm_data = pd.read_csv('/Users/befeltingu/PSUClasses/AdvancedML/GMM_dataset.txt',delim_whitespace=True).as_matrix()
+
+    plt.scatter(gmm_data[:500,0],gmm_data[:500,1],color='b')
+    plt.scatter(gmm_data[500:1000,0],gmm_data[500:1000,1],color='r')
+    plt.scatter(gmm_data[1000:1500,0],gmm_data[1000:1500,1],color='g')
+    plt.title('True clusters')
+    plt.show()
 
     mean = [-1,0]
     cov = [[1,0],[0,1]]
@@ -103,13 +132,13 @@ if __name__ == '__main__':
     X = np.concatenate((x1,x2))
 
 
-    plt.scatter(x1[:,0],x1[:,1],color='blue')
-    plt.scatter(x2[:,0],x2[:,1],color='red')
+    #plt.scatter(x1[:,0],x1[:,1],color='blue')
+    #plt.scatter(x2[:,0],x2[:,1],color='red')
 
 
-    k_means = KMeans(K,X)
+    k_means = KMeans(K,gmm_data)
 
-    k_means.init()
+    #k_means.init()
 
-    k_means.run(3)
+    k_means.run(R,MaxIters)
     print('Done running K means')
