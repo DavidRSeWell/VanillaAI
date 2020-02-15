@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
 class KMeans:
     def __init__(self,num_clusters,data):
         self.colors = ['b','g','r','c','m','y','k','w']
