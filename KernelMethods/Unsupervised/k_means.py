@@ -56,7 +56,7 @@ class KMeans:
         :return:
         '''
 
-        best_loss = (0,999) # tuple with (index of run, final loss)
+        best_loss = (0,999999999999) # tuple with (index of run, final loss)
         best_cluster = (None,None) # tuple of (means, assignments)
         for r_i in range(r):
 
