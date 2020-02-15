@@ -57,6 +57,7 @@ class KMeans:
         '''
 
         best_loss = (0,999) # tuple with (index of run, final loss)
+        best_cluster = (None,None) # tuple of (means, assignments)
         for r_i in range(r):
 
             self.init() # restart clusters each time
@@ -69,10 +70,14 @@ class KMeans:
                 self.point_assignment()
                 self.cluster_assignment()
                 l2_loss = np.round(self.l2_loss(),2)
-                self.plot(run=r_i,iter=iter,l2_loss=l2_loss)
+                #self.plot(run=r_i,iter=iter,l2_loss=l2_loss)
 
             if l2_loss < best_loss[1]:
+                best_cluster = (self.C.copy(),self.S.copy()) # copy the best result
                 best_loss = (r_i,l2_loss)
+
+        self.plot(run='final',iter='final',l2_loss=best_loss[1])
+        return best_cluster
 
     def plot(self,run=None,iter=None,l2_loss=None):
         '''
