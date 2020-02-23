@@ -301,7 +301,7 @@ if __name__ == '__main__':
 
         plt.show()
 
-    run_semiparametric_regression = 1
+    run_semiparametric_regression = 0
     if run_semiparametric_regression:
 
         data = pd.read_csv('/Users/befeltingu/VanillaAI/KernelMethods/Basic/hmw3-data1.csv')

@@ -34,6 +34,15 @@ class GMM:
         self.gauss_list = [i for i in range(self.K)] # list of the current gaussian distributions in our mixture model
         self.gamma = np.zeros((self.N,self.K))
 
+    def assign_points(self):
+        '''
+        Re assign points to most likely distribution
+        :return:
+        '''
+        new_s = [np.argmax(self.gamma[n]) for n in range(self.N)]
+
+        self.S = new_s
+
     def calculate_k_gauss(self):
         '''
         :return:
@@ -122,7 +131,11 @@ class GMM:
 
         self.e_step()  # now that we have gauss distributions lets assign points
 
-        self.plot_gmm() # show the current distributions and data
+        ll = self.log_likelihood()
+
+        self.plot_gmm(ll,'init') # show the current distributions and data
+
+        return ll
 
     def log_likelihood(self):
         '''
@@ -131,8 +144,12 @@ class GMM:
         '''
         ll = 0.0
         for n in range(self.N):
+
+            ll_k = 0.0
             for k in range(self.K):
-                ll += np.log(self.pi[k] * self.gauss_list[k].pdf(self.X[n]))
+                ll_k += self.pi[k] * self.gauss_list[k].pdf(self.X[n])
+
+            ll += np.log(ll_k)
 
         return ll
 
@@ -150,7 +167,6 @@ class GMM:
             mu_k = np.dot(self.gamma[:,k].T,self.X) / N_k # dot product with gamma_k = (n x 1)^T , X = n x m result = 1 x m
 
             mu_k = mu_k.reshape((self.M,1))
-            #cov_k = (np.dot(self.gamma[:,k].T,np.dot((self.X - mu_k).T,(self.X - mu_k))) ) / N_k # gamma_k * (x - mu)(x - mu)^T  (n x 1)^T * (m x n) (n x m) = n x n
 
             cov_k = np.zeros((self.M,self.M))
 
@@ -200,9 +216,23 @@ class GMM:
         '''
 
 
+        current_best_ll = -999999
+        current_best_model = (None,None,None,None,None) # (mu,covariance,S,pi,gauss list,gamma)
         for run in range(runs):
 
-            ll_list = []
+            # re initialize
+            # FIRST RUN KMEANS FOR SEEDING
+            kmeans = KMeans(self.K, self.X)
+
+            # run a single run of kmeans with max iterations at 5
+            C, S = kmeans.run(1, 5)
+
+            init_ll = self.init(type='kmeans', mu=C, S=S)
+
+            ll_list = [init_ll]
+            diff_ll = []
+            current_ll = init_ll
+            epsilon = 0.01 # how much to allow for delat_ll before converged
             for iter in range(maxiters):
 
                 # E step
@@ -216,8 +246,30 @@ class GMM:
 
                 print('LL at iter {} is {}'.format(iter,ll))
 
-                if (iter % 5) == 0:
+                if (iter % 10) == 0: # plot of x number of iterations
                     self.plot_gmm(ll,iter)
+
+                self.assign_points() # used for plotting assign point to max Posterier
+
+                diff_ll.append(np.abs(current_ll - ll))
+
+                average_change = np.abs(np.array(diff_ll)[-5:].mean()) # for convergence checking
+                print('average change = {}'.format(average_change))
+                current_ll = ll
+
+                if average_change <= epsilon:
+                    print('Run {} converged! at iteration {}'.format(run,iter))
+                    break
+
+            final_ll = ll_list[-1]
+
+            if final_ll < current_best_ll:
+
+                current_best_model = (self.mu.copy(),self.covariance.copy(),self.S.copy(),self.pi.copy(),
+                                      self.gauss_list.copy(),self.gamma.copy())
+
+
+                current_best_ll = final_ll
 
 
     def variance(self,X):
@@ -234,19 +286,10 @@ if __name__ == '__main__':
 
     print('Running Vanilla GMM')
 
-    K = 3 # num clusters
+    K = 3 # num gaussians
     R = 1 # number of runs
     MaxItersKmeans = 1 # num max iterations
-    MaxIters = 5 # num max iterations
-
-    mean = [-2,0]
-    cov = [[1,0],[0,1]]
-    x1 = np.random.multivariate_normal(mean, cov, 100)
-
-    mean = [2,0]
-    x2 = np.random.multivariate_normal(mean, cov, 100)
-
-    #X = np.concatenate((x1,x2))
+    MaxIters = 50 # num max iterations
 
     gmm_data = pd.read_csv('/Users/befeltingu/PSUClasses/AdvancedML/GMM_dataset.txt',delim_whitespace=True).as_matrix()
 
@@ -256,14 +299,7 @@ if __name__ == '__main__':
     plt.title('True clusters')
     plt.show()
 
-    # FIRST RUN KMEANS FOR SEEDING
-    kmeans = KMeans(K,gmm_data)
-
-    C , S = kmeans.run(R,MaxItersKmeans)
-
     gmm = GMM(gmm_data,K)
-
-    gmm.init(type='kmeans',mu=C,S=S)
 
     gmm.run(R,maxiters=MaxIters)
 

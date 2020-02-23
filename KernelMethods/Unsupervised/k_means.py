@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 class KMeans:
+
     def __init__(self,num_clusters,data):
         self.colors = ['b','g','r','c','m','y','k','w']
 
@@ -58,19 +59,20 @@ class KMeans:
 
         best_loss = (0,999999999999) # tuple with (index of run, final loss)
         best_cluster = (None,None) # tuple of (means, assignments)
-        for r_i in range(r):
+        for r_i in range(r): # do below for each run and track best result
 
             self.init() # restart clusters each time
             print('Running run # = {}'.format(r_i))
 
-            l2_loss = np.round(self.l2_loss(),2)
+            l2_loss = np.round(self.l2_loss(),2) # get initial loss
             self.plot(run=r_i,iter=0,l2_loss=l2_loss)
 
             for iter in range(1,iters + 1):
                 self.point_assignment()
                 self.cluster_assignment()
                 l2_loss = np.round(self.l2_loss(),2)
-                #self.plot(run=r_i,iter=iter,l2_loss=l2_loss)
+                if (iter % 10) == 0:
+                    self.plot(run=r_i,iter=iter,l2_loss=l2_loss)
 
             if l2_loss < best_loss[1]:
                 best_cluster = (self.C.copy(),self.S.copy()) # copy the best result
@@ -114,9 +116,9 @@ class KMeans:
 
 if __name__ == '__main__':
 
-    K = 2 # num clusters
+    K = 5 # num clusters
     R = 3 # number of runs
-    MaxIters = 3 # num max iterations
+    MaxIters = 20 # num max iterations
 
     gmm_data = pd.read_csv('/Users/befeltingu/PSUClasses/AdvancedML/GMM_dataset.txt',delim_whitespace=True).as_matrix()
 
@@ -135,14 +137,7 @@ if __name__ == '__main__':
 
     X = np.concatenate((x1,x2))
 
-
-    #plt.scatter(x1[:,0],x1[:,1],color='blue')
-    #plt.scatter(x2[:,0],x2[:,1],color='red')
-
-
     k_means = KMeans(K,gmm_data)
-
-    #k_means.init()
 
     k_means.run(R,MaxIters)
     print('Done running K means')
