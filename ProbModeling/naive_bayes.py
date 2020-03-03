@@ -1,11 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-
 
 from scipy.stats import norm
-
 
 def create_spam_data(spam_file):
     '''
@@ -197,8 +194,6 @@ class BinaryGaussianNB:
         confusion_mat = np.array([[tn,fp],[fn,tp]])
 
         conf_mat_df = pd.DataFrame(confusion_mat)
-
-        #ax = sns.heatmap(conf_mat_df, annot=True)
 
         print(conf_mat_df)
 
