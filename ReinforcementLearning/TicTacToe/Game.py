@@ -9,7 +9,8 @@ class RandomPlayer:
         self.current_action = None
         self.current_reward = None
         self.current_state = None # the game expects a player to have this attribute
-
+        self.epsilon = 10 # just a place holder to avoid if else statements to check for Random Player
+        self.delta = 0.001
         self.side = side
 
     def __repr__(self):
@@ -34,7 +35,7 @@ class RandomPlayer:
 
         return legal_moves
 
-    def update(self,s):
+    def update(self,s,a,r,s2):
         '''
 
         :param reward:
@@ -68,21 +69,20 @@ class RandomPlayer:
 
         return np.random.choice(legal_moves)
 
-
 class TabularQPlayer:
     '''
     Im not sophistaced but I work
     '''
 
-    def __init__(self,side='X',epsilon=0.1):
+    def __init__(self,side='X',epsilon=0.5):
 
         self.alpha = 0.1 # learning rate
         self.current_action = None # for tracking
         self.current_reward = None # for tracking
         self.current_state = None # varaible used for tracking state
-        self.delta = 0.001 # for updating epsilon
+        self.delta = 0.0001 # for updating epsilon
         self.epsilon = epsilon # for epsilon greedy
-        self.gamma = 0.1 # how much to value future reward
+        self.gamma = 0.9 # how much to value future reward
         self.pieces = {' ': 0, 'X': 1, 'O': -1} # used in converting the board dictionary to an array
         self.side = side
 
@@ -192,26 +192,25 @@ class TabularQPlayer:
     def init(self):
 
         self.S = np.array([np.array(i) for i in itertools.product([0,1,-1], repeat = 9)]) # create all possible combinations of states
-        self.Q = np.random.random((len(self.S),9)) # Q matrix of values
+        self.Q = np.zeros((len(self.S),9)) # Q matrix of values
 
-    def update(self,s):
+    def update(self,s1,a,r,s2):
         '''
         :param s: next state
         :return:
         '''
-
-        s1 = self.convert_board_to_array(self.current_state)
+        s1 = self.convert_board_to_array(s1)
 
         s1_index = self.get_state_index(s1)
 
-        s2 = self.convert_board_to_array(s)
+        s2 = self.convert_board_to_array(s2)
 
         s2_index = self.get_state_index(s2)
 
         max_action = self.get_greedy(s2)
 
-        a = self.current_action
-        r = self.current_reward
+        #a = self.current_action
+        #r = self.current_reward
 
         if max_action:
             max_q_next = self.Q[s2_index][self.get_greedy(s2)]
@@ -228,7 +227,6 @@ class TabularQPlayer:
         :return:
         '''
 
-        '''
         v_mat = np.zeros((9,))
 
         for i in range(9):
@@ -238,10 +236,9 @@ class TabularQPlayer:
 
         v_mat = v_mat.reshape((3,3))
 
-        sns.heatmap(v_mat)
+        sns.heatmap(v_mat,annot=True)
 
         plt.show()
-        '''
 
         v_indexes = self.Q.sum(axis=1).argsort()
 
@@ -399,44 +396,59 @@ class TicTacToe:
                 print('RUNNING NEW GAME# = {}'.format(iter))
             self.reset()
 
-            while self.game_state['win_state'] == 0:
+            s2_c = None
+            r2 = None
+            a2 = None
+            while True:
 
-                try:
-                    action = self.game_state['player'].act(self.board_state)
-                    self.game_state['player'].current_action = action
+                s = self.board_state.copy()
 
-                except:
-                    print('ya')
+                # Player 1 act and observe reward / state
+                a1 = self.player1.act(s)
 
-                # Save current board state to the active player
-                #self.player1.current_state = self.board_state.copy()
+                self.player1.current_action = a1
 
-                #self.player2.current_state = self.board_state.copy()
+                r1,s1 = self.update(a1,self.player1)
 
-                r = self.update(action)
+                if show_board:
+                    print(self)
 
-                self.game_state['player'].current_reward = r
+                self.player1.current_reward = r1
 
-                if r != 0:
-                    print('yippy aya')
+                if s2_c is not None:
+                    self.player2.update(s2_c,a2,-1.0*r2,s1) # update player 2 with new observed state
 
-                # now update the current player
-                if self.game_state['player'] == self.player1:
+                if self.game_state['win_state'] == 1:
+                    self.player1.update(s, a1, r1, s1)
+                    break
 
-                    self.game_state['player'] = self.player2
-                else:
+                # Player 2 act and observe reward / state
+                a2 = self.player2.act(s1)
+                s2_c = s1.copy()
 
-                    self.game_state['player'] = self.player1
+                self.player2.current_action = a2
 
-                if self.game_state['player'].current_action is not None:
-                    self.game_state['player'].update(self.board_state)
+                r2, s2 = self.update(a2,self.player2)
 
+                if show_board:
+                    print(self)
 
+                self.player2.current_reward = r2
+
+                self.player1.update(s,a1,r1,s2)
+
+                if self.game_state['win_state'] == 1:
+                    self.player2.update(s1, a2, -1.0*r2, s2)
+                    break
 
                 if show_board:
                     print(self)
 
             self.player1.epsilon -= self.player1.delta
+            self.player2.epsilon -= self.player2.delta
+
+            self.player1.epsilon = max(self.player1.epsilon,0)
+            self.player2.epsilon = max(self.player2.epsilon,0)
 
             if show_board:
                 print('GAME RESULT = {}'.format(self.game_state['win_state']))
@@ -475,7 +487,7 @@ class TicTacToe:
 
                 action = self.game_state['player'].act_greedy(self.board_state)
 
-                r = self.update(action)
+                r, s = self.update(action,self.game_state['player'])
 
                 self.player1.current_state = self.board_state.copy()
 
@@ -492,17 +504,14 @@ class TicTacToe:
                 if show_board:
                     print(self)
 
-            # game finished
-            if r == 2:
-                continue
-            else:
-                reward += r
 
-        reward = reward / iters
+            reward += r
+
+        reward = reward
 
         return reward
 
-    def update(self,action):
+    def update(self,action,player):
         '''
         Take in an action from a player
         and update the game state
@@ -510,7 +519,8 @@ class TicTacToe:
         :return:
         '''
 
-        p_side = self.game_state['player'].side
+        p_side = player.side
+        r = None
         if self.is_legal(action):
 
             board_action = list(self.board_state.keys())[action]
@@ -522,17 +532,20 @@ class TicTacToe:
                 if p_side == 'X':
                     self.game_state['win_state'] = 1
 
-                    return 1
+                    r = 1
                 else:
-                    self.game_state['win_state'] = -1
+                    self.game_state['win_state'] = 1
 
-                    return -1
+                    r = -1
 
             elif self.is_draw():
-                self.game_state['win_state'] = 0.5
-                return 0.5
+                self.game_state['win_state'] = 1
+                r = 0
 
-            return 0
+            else:
+                r = 0
+
+            return r, self.board_state.copy()
 
         else:
             print('The action {} by player {} not legal!!!'.format(p_side,action))
@@ -545,21 +558,29 @@ if __name__ == '__main__':
     player1 = TabularQPlayer(side='X')
     player1.init()
 
-    player2 = RandomPlayer(side='O')
-    #player2 = TabularQPlayer(side='O')
-    #player2.init()
+    #player2 = RandomPlayer(side='O')
+    player2 = TabularQPlayer(side='O')
+    player2.init()
 
     tic_tac_toe = TicTacToe(player1,player2)
 
-    reward = tic_tac_toe.run(iters=1000,simulate_iters=10,show_board=False)
+    reward = tic_tac_toe.run(iters=10000,simulate_iters=100,show_board=False)
 
     plt.plot([x for x in range(len(reward))],reward)
 
+    plt.title('alpha = {} epsilon = {} delta = {} gamma = {}'.format(player1.alpha,player1.epsilon,player1.delta,player1.gamma))
+
+    plt.legend()
+
     plt.show()
 
-    #player1.visualize_Q()
+    player1.visualize_Q()
 
-    tic_tac_toe.simulate(iters=15,show_board=True)
+    tic_tac_toe.simulate(iters=5,show_board=True)
+
+    r = tic_tac_toe.simulate(iters=100,show_board=False)
+
+    print('Final reward estimate = {}'.format(r / 100.0))
 
     print('Done running Tic Tac toe')
 

@@ -6,7 +6,7 @@ from matplotlib.patches import Ellipse
 from scipy.stats import multivariate_normal as mvn
 
 #LOCAL
-from KernelMethods.Unsupervised.k_means import KMeans
+from UnsupervisedLearning.k_means import KMeans
 
 class GMM:
     '''
